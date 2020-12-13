@@ -22,7 +22,8 @@ template <typename T>
 void MessageQueue<T>::send(T &&msg)
 {
     std::lock_guard<std::mutex> lk(_mtx);
-    _queue.emplace_back(msg);
+    
+    _queue.push_back(msg);
     _cv.notify_one();
 }
 
@@ -37,7 +38,7 @@ void TrafficLight::waitForGreen()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         auto msg = _queue.receive();
-        if (msg == green)
+        if (msg == TrafficLightPhase::green)
         {
             return;
         }
@@ -74,7 +75,7 @@ void TrafficLight::cycleThroughPhases()
 
         if (timeSinceLastUpdate >= cycleDuration)
         {
-            _currentPhase = _currentPhase == red ? green : red;
+            _currentPhase = _currentPhase == TrafficLightPhase::red ? TrafficLightPhase::green : TrafficLightPhase::red;
             auto msgPhase = _currentPhase;
             auto ftr = std::async(std::launch::async, &MessageQueue<TrafficLightPhase>::send, _queue, std::move(msgPhase) );
             ftr.wait();
